@@ -1,0 +1,19 @@
+# Build artifacts
+/target
+**/*.rs.bk
+
+# Local environment / secrets
+.env
+.env.*
+
+# Editor / OS cruft
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+*.md
+!README.md
+!CHANGELOG.md
+!NOTICE.md

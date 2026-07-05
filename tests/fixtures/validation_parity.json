@@ -1,0 +1,1225 @@
+[
+ {
+  "name": "duplicate_icon_id",
+  "spec": {
+   "entities": {
+    "icons": [
+     {
+      "id": "Alice",
+      "type": "Person"
+     },
+     {
+      "id": "Alice",
+      "type": "Person"
+     }
+    ]
+   }
+  },
+  "types": [
+   "duplicate_id"
+  ]
+ },
+ {
+  "name": "link_missing_endpoint",
+  "spec": {
+   "entities": {
+    "icons": [
+     {
+      "id": "Alice",
+      "type": "Person"
+     }
+    ]
+   },
+   "links": [
+    {
+     "from_id": "Alice",
+     "to_id": "Ghost",
+     "type": "Call"
+    }
+   ]
+  },
+  "types": [
+   "missing_entity"
+  ]
+ },
+ {
+  "name": "self_loop_link",
+  "spec": {
+   "entities": {
+    "icons": [
+     {
+      "id": "Alice",
+      "type": "Person"
+     }
+    ]
+   },
+   "links": [
+    {
+     "from_id": "Alice",
+     "to_id": "Alice",
+     "type": "Call"
+    }
+   ]
+  },
+  "types": [
+   "self_loop"
+  ]
+ },
+ {
+  "name": "grade_index_out_of_range",
+  "spec": {
+   "entities": {
+    "icons": [
+     {
+      "id": "A",
+      "type": "Person",
+      "grade_one": 99
+     }
+    ]
+   },
+   "grades_one": {
+    "items": [
+     "Reliable",
+     "Unreliable"
+    ]
+   }
+  },
+  "types": [
+   "grade_out_of_range"
+  ]
+ },
+ {
+  "name": "unknown_grade_name",
+  "spec": {
+   "entities": {
+    "icons": [
+     {
+      "id": "A",
+      "type": "Person",
+      "grade_one": "Bogus"
+     }
+    ]
+   },
+   "grades_one": {
+    "items": [
+     "Reliable",
+     "Unreliable"
+    ]
+   }
+  },
+  "types": [
+   "unknown_grade"
+  ]
+ },
+ {
+  "name": "unknown_color_name",
+  "spec": {
+   "entities": {
+    "icons": [
+     {
+      "id": "A",
+      "type": "Person",
+      "color": "not-a-color"
+     }
+    ]
+   }
+  },
+  "types": [
+   "unknown_color"
+  ]
+ },
+ {
+  "name": "invalid_date_format",
+  "spec": {
+   "entities": {
+    "icons": [
+     {
+      "id": "A",
+      "type": "Person",
+      "date": "2024/01/15"
+     }
+    ]
+   }
+  },
+  "types": [
+   "invalid_date"
+  ]
+ },
+ {
+  "name": "invalid_time_format",
+  "spec": {
+   "entities": {
+    "icons": [
+     {
+      "id": "A",
+      "type": "Person",
+      "time": "25:99:99"
+     }
+    ]
+   }
+  },
+  "types": [
+   "invalid_time"
+  ]
+ },
+ {
+  "name": "attribute_type_conflict",
+  "spec": {
+   "entities": {
+    "icons": [
+     {
+      "id": "A",
+      "type": "Person",
+      "attributes": {
+       "phone": "555-0001"
+      }
+     },
+     {
+      "id": "B",
+      "type": "Person",
+      "attributes": {
+       "phone": 5550002
+      }
+     }
+    ]
+   }
+  },
+  "types": [
+   "type_conflict"
+  ]
+ },
+ {
+  "name": "unknown_strength_name",
+  "spec": {
+   "entities": {
+    "icons": [
+     {
+      "id": "A",
+      "type": "Person",
+      "strength": "Tentative"
+     }
+    ]
+   }
+  },
+  "types": [
+   "invalid_strength"
+  ]
+ },
+ {
+  "name": "invalid_strength_default",
+  "spec": {
+   "strengths": {
+    "default": "DoesNotExist",
+    "items": [
+     {
+      "name": "Confirmed",
+      "dot_style": "solid"
+     }
+    ]
+   },
+   "entities": {
+    "icons": [
+     {
+      "id": "A",
+      "type": "Person"
+     }
+    ]
+   }
+  },
+  "types": [
+   "invalid_strength_default"
+  ]
+ },
+ {
+  "name": "invalid_ordered_link",
+  "spec": {
+   "entities": {
+    "icons": [
+     {
+      "id": "A",
+      "type": "Person"
+     },
+     {
+      "id": "B",
+      "type": "Person"
+     }
+    ]
+   },
+   "links": [
+    {
+     "from_id": "A",
+     "to_id": "B",
+     "type": "Call",
+     "ordered": true,
+     "date": "2024-01-15",
+     "time": "12:00:00"
+    }
+   ]
+  },
+  "types": [
+   "invalid_ordered"
+  ]
+ },
+ {
+  "name": "missing_entity_type",
+  "spec": {
+   "entities": {
+    "icons": [
+     {
+      "id": "A"
+     }
+    ]
+   }
+  },
+  "types": [
+   "missing_required"
+  ]
+ },
+ {
+  "name": "invalid_arrow_style",
+  "spec": {
+   "entities": {
+    "icons": [
+     {
+      "id": "A",
+      "type": "Person"
+     },
+     {
+      "id": "B",
+      "type": "Person"
+     }
+    ]
+   },
+   "links": [
+    {
+     "from_id": "A",
+     "to_id": "B",
+     "type": "Call",
+     "arrow": "sideways"
+    }
+   ]
+  },
+  "types": [
+   "invalid_arrow"
+  ]
+ },
+ {
+  "name": "unknown_semantic_type",
+  "spec": {
+   "entities": {
+    "icons": [
+     {
+      "id": "A",
+      "type": "Person"
+     }
+    ]
+   },
+   "attribute_classes": [
+    {
+     "name": "Foo",
+     "type": "text",
+     "semantic_type": "Not Registered"
+    }
+   ]
+  },
+  "types": [
+   "unknown_semantic_type"
+  ]
+ },
+ {
+  "name": "invalid_geo_map",
+  "spec": {
+   "settings": {
+    "extra_cfg": {
+     "geo_map": {
+      "mode": "both",
+      "data": {
+       "Palmas/TO": [
+        -10.18,
+        -48.33
+       ]
+      }
+     }
+    }
+   },
+   "entities": {
+    "icons": [
+     {
+      "id": "A",
+      "type": "Person"
+     }
+    ]
+   }
+  },
+  "types": [
+   "invalid_geo_map"
+  ]
+ },
+ {
+  "name": "icon_map_invalid",
+  "spec": {
+   "settings": {
+    "extra_cfg": {
+     "icon_map": {
+      "rules": [
+       {
+        "match": "attribute",
+        "mapping": {
+         "400": "itau"
+        }
+       }
+      ]
+     }
+    }
+   },
+   "entities": {
+    "icons": [
+     {
+      "id": "A",
+      "type": "Person"
+     }
+    ]
+   }
+  },
+  "types": [
+   "icon_map_invalid"
+  ]
+ },
+ {
+  "name": "invalid_custom_icons_include",
+  "spec": {
+   "settings": {
+    "extra_cfg": {
+     "custom_icons_include": "bogus"
+    }
+   },
+   "entities": {
+    "icons": [
+     {
+      "id": "A",
+      "type": "Person"
+     }
+    ]
+   }
+  },
+  "types": [
+   "invalid_custom_icons_include"
+  ]
+ },
+ {
+  "name": "intensity_missing_attribute",
+  "spec": {
+   "settings": {
+    "extra_cfg": {
+     "styling": {
+      "links": {
+       "intensity": {
+        "width": {
+         "range": [
+          1,
+          10
+         ]
+        }
+       }
+      }
+     }
+    }
+   },
+   "entities": {
+    "icons": [
+     {
+      "id": "A",
+      "type": "Person"
+     },
+     {
+      "id": "B",
+      "type": "Person"
+     }
+    ]
+   },
+   "links": [
+    {
+     "from_id": "A",
+     "to_id": "B",
+     "type": "Call",
+     "attributes": {
+      "amount": 5
+     }
+    }
+   ]
+  },
+  "types": [
+   "invalid_intensity_attribute"
+  ]
+ },
+ {
+  "name": "intensity_log_with_zero",
+  "spec": {
+   "settings": {
+    "extra_cfg": {
+     "styling": {
+      "links": {
+       "intensity": {
+        "attribute": "amount",
+        "scale": "log",
+        "width": {
+         "range": [
+          1,
+          10
+         ]
+        }
+       }
+      }
+     }
+    }
+   },
+   "entities": {
+    "icons": [
+     {
+      "id": "A",
+      "type": "Person"
+     },
+     {
+      "id": "B",
+      "type": "Person"
+     }
+    ]
+   },
+   "links": [
+    {
+     "from_id": "A",
+     "to_id": "B",
+     "type": "Call",
+     "attributes": {
+      "amount": 0
+     }
+    }
+   ]
+  },
+  "types": [
+   "invalid_intensity_domain"
+  ]
+ },
+ {
+  "name": "intensity_bad_range",
+  "spec": {
+   "settings": {
+    "extra_cfg": {
+     "styling": {
+      "links": {
+       "intensity": {
+        "attribute": "amount",
+        "width": {
+         "range": [
+          10,
+          1
+         ]
+        }
+       }
+      }
+     }
+    }
+   },
+   "entities": {
+    "icons": [
+     {
+      "id": "A",
+      "type": "Person"
+     },
+     {
+      "id": "B",
+      "type": "Person"
+     }
+    ]
+   },
+   "links": [
+    {
+     "from_id": "A",
+     "to_id": "B",
+     "type": "Call",
+     "attributes": {
+      "amount": 5
+     }
+    }
+   ]
+  },
+  "types": [
+   "invalid_intensity_range"
+  ]
+ },
+ {
+  "name": "intensity_short_ramp",
+  "spec": {
+   "settings": {
+    "extra_cfg": {
+     "styling": {
+      "links": {
+       "intensity": {
+        "attribute": "amount",
+        "color": {
+         "ramp": [
+          "Red"
+         ]
+        }
+       }
+      }
+     }
+    }
+   },
+   "entities": {
+    "icons": [
+     {
+      "id": "A",
+      "type": "Person"
+     },
+     {
+      "id": "B",
+      "type": "Person"
+     }
+    ]
+   },
+   "links": [
+    {
+     "from_id": "A",
+     "to_id": "B",
+     "type": "Call",
+     "attributes": {
+      "amount": 5
+     }
+    }
+   ]
+  },
+  "types": [
+   "invalid_intensity_ramp"
+  ]
+ },
+ {
+  "name": "intensity_power_without_value",
+  "spec": {
+   "settings": {
+    "extra_cfg": {
+     "styling": {
+      "links": {
+       "intensity": {
+        "attribute": "amount",
+        "scale": "power",
+        "width": {
+         "range": [
+          1,
+          10
+         ]
+        }
+       }
+      }
+     }
+    }
+   },
+   "entities": {
+    "icons": [
+     {
+      "id": "A",
+      "type": "Person"
+     },
+     {
+      "id": "B",
+      "type": "Person"
+     }
+    ]
+   },
+   "links": [
+    {
+     "from_id": "A",
+     "to_id": "B",
+     "type": "Call",
+     "attributes": {
+      "amount": 5
+     }
+    }
+   ]
+  },
+  "types": [
+   "invalid_intensity_config"
+  ]
+ },
+ {
+  "name": "categorical_missing_attribute",
+  "spec": {
+   "settings": {
+    "extra_cfg": {
+     "styling": {
+      "links": {
+       "categorical": {
+        "styles": {
+         "Witness": {
+          "line_color": "Green"
+         }
+        }
+       }
+      }
+     }
+    }
+   },
+   "entities": {
+    "icons": [
+     {
+      "id": "A",
+      "type": "Person"
+     }
+    ]
+   }
+  },
+  "types": [
+   "invalid_categorical_attribute"
+  ]
+ },
+ {
+  "name": "categorical_empty_styles",
+  "spec": {
+   "settings": {
+    "extra_cfg": {
+     "styling": {
+      "links": {
+       "categorical": {
+        "attribute": "source_type"
+       }
+      }
+     }
+    }
+   },
+   "entities": {
+    "icons": [
+     {
+      "id": "A",
+      "type": "Person"
+     }
+    ]
+   }
+  },
+  "types": [
+   "invalid_categorical_config"
+  ]
+ },
+ {
+  "name": "categorical_empty_style_entry",
+  "spec": {
+   "settings": {
+    "extra_cfg": {
+     "styling": {
+      "links": {
+       "categorical": {
+        "attribute": "source_type",
+        "styles": {
+         "Witness": {}
+        }
+       }
+      }
+     }
+    }
+   },
+   "entities": {
+    "icons": [
+     {
+      "id": "A",
+      "type": "Person"
+     }
+    ]
+   }
+  },
+  "types": [
+   "invalid_categorical_style"
+  ]
+ },
+ {
+  "name": "styling_intensity_categorical_conflict",
+  "spec": {
+   "settings": {
+    "extra_cfg": {
+     "styling": {
+      "links": {
+       "intensity": {
+        "attribute": "risk",
+        "width": {
+         "range": [
+          1,
+          5
+         ]
+        }
+       },
+       "categorical": {
+        "attribute": "risk",
+        "styles": {
+         "high": {
+          "line_color": "Red"
+         }
+        }
+       }
+      }
+     }
+    }
+   },
+   "entities": {
+    "icons": [
+     {
+      "id": "A",
+      "type": "Person"
+     },
+     {
+      "id": "B",
+      "type": "Person"
+     }
+    ]
+   },
+   "links": [
+    {
+     "from_id": "A",
+     "to_id": "B",
+     "type": "Call",
+     "attributes": {
+      "risk": 1
+     }
+    }
+   ]
+  },
+  "types": [
+   "styling_conflict"
+  ]
+ },
+ {
+  "name": "datetime_visible_true_forbidden",
+  "spec": {
+   "entities": {
+    "icons": [
+     {
+      "id": "A",
+      "type": "Person"
+     }
+    ]
+   },
+   "attribute_classes": [
+    {
+     "name": "EventDate",
+     "type": "datetime",
+     "visible": true
+    }
+   ]
+  },
+  "types": [
+   "datetime_ac_forbids_visible"
+  ]
+ },
+ {
+  "name": "display_invalid_placeholder_without_sources",
+  "spec": {
+   "entities": {
+    "icons": [
+     {
+      "id": "A",
+      "type": "Person"
+     }
+    ]
+   },
+   "settings": {
+    "extra_cfg": {
+     "display_attribute": [
+      {
+       "key": "d1",
+       "attribute_name": "Activity",
+       "template": "{q}",
+       "sources": []
+      }
+     ]
+    }
+   }
+  },
+  "types": [
+   "display_invalid"
+  ]
+ },
+ {
+  "name": "display_name_collides_with_ac",
+  "spec": {
+   "entities": {
+    "icons": [
+     {
+      "id": "A",
+      "type": "Person"
+     }
+    ]
+   },
+   "attribute_classes": [
+    {
+     "name": "tx",
+     "type": "number",
+     "visible": false
+    },
+    {
+     "name": "Activity",
+     "type": "text"
+    }
+   ],
+   "settings": {
+    "extra_cfg": {
+     "display_attribute": [
+      {
+       "key": "d1",
+       "attribute_name": "Activity",
+       "template": "{tx}",
+       "sources": [
+        {
+         "attribute": "tx"
+        }
+       ]
+      }
+     ]
+    }
+   }
+  },
+  "types": [
+   "display_name_collision"
+  ]
+ },
+ {
+  "name": "display_overlap_conflict",
+  "spec": {
+   "entities": {
+    "icons": [
+     {
+      "id": "A",
+      "type": "Person"
+     }
+    ]
+   },
+   "attribute_classes": [
+    {
+     "name": "x",
+     "type": "text"
+    }
+   ],
+   "settings": {
+    "extra_cfg": {
+     "display_label": [
+      {
+       "key": "a",
+       "template": "{x}",
+       "sources": [
+        {
+         "attribute": "x"
+        }
+       ]
+      },
+      {
+       "key": "b",
+       "template": "{x}",
+       "sources": [
+        {
+         "attribute": "x"
+        }
+       ]
+      }
+     ]
+    }
+   }
+  },
+  "types": [
+   "display_overlap_conflict"
+  ]
+ },
+ {
+  "name": "id_pattern_mismatch",
+  "spec": {
+   "entity_types": [
+    {
+     "name": "Person",
+     "icon_file": "person",
+     "enforce": {
+      "id_pattern": "^\\d{11}$",
+      "id_pattern_description": "11 digits"
+     }
+    }
+   ],
+   "entities": {
+    "icons": [
+     {
+      "id": "abc",
+      "type": "Person"
+     }
+    ]
+   }
+  },
+  "types": [
+   "id_pattern_mismatch"
+  ]
+ },
+ {
+  "name": "attribute_pattern_mismatch",
+  "spec": {
+   "attribute_classes": [
+    {
+     "name": "CPF",
+     "type": "text",
+     "enforce": {
+      "pattern": "^\\d{11}$",
+      "description": "digits only"
+     }
+    }
+   ],
+   "entities": {
+    "icons": [
+     {
+      "id": "A",
+      "type": "Person",
+      "attributes": {
+       "CPF": "123.456.789-01"
+      }
+     }
+    ]
+   }
+  },
+  "types": [
+   "attribute_pattern_mismatch"
+  ]
+ },
+ {
+  "name": "attribute_value_not_allowed",
+  "spec": {
+   "attribute_classes": [
+    {
+     "name": "Status",
+     "type": "text",
+     "enforce": {
+      "allowed_values": [
+       "Active",
+       "Inactive"
+      ]
+     }
+    }
+   ],
+   "entities": {
+    "icons": [
+     {
+      "id": "A",
+      "type": "Person",
+      "attributes": {
+       "Status": "active"
+      }
+     }
+    ]
+   }
+  },
+  "types": [
+   "attribute_value_not_allowed"
+  ]
+ },
+ {
+  "name": "required_attribute_missing",
+  "spec": {
+   "entity_types": [
+    {
+     "name": "Person",
+     "icon_file": "person",
+     "enforce": {
+      "required_attributes": [
+       "CPF"
+      ]
+     }
+    }
+   ],
+   "entities": {
+    "icons": [
+     {
+      "id": "A",
+      "type": "Person"
+     }
+    ]
+   }
+  },
+  "types": [
+   "required_attribute_missing"
+  ]
+ },
+ {
+  "name": "validator_invalid_scope",
+  "spec": {
+   "entities": {
+    "icons": [
+     {
+      "id": "A",
+      "type": "Person"
+     }
+    ]
+   },
+   "validators": [
+    {
+     "attribute": "CPF",
+     "pattern": "^\\d{11}$",
+     "description": "digits"
+    }
+   ]
+  },
+  "types": [
+   "validator_invalid_scope"
+  ]
+ },
+ {
+  "name": "validator_invalid_shape",
+  "spec": {
+   "entity_types": [
+    {
+     "name": "Person",
+     "icon_file": "person"
+    }
+   ],
+   "entities": {
+    "icons": [
+     {
+      "id": "A",
+      "type": "Person"
+     }
+    ]
+   },
+   "validators": [
+    {
+     "entity_type": "Person",
+     "attribute": "CPF"
+    }
+   ]
+  },
+  "types": [
+   "validator_invalid_shape"
+  ]
+ },
+ {
+  "name": "validator_reserved_attribute",
+  "spec": {
+   "entity_types": [
+    {
+     "name": "Person",
+     "icon_file": "person"
+    }
+   ],
+   "entities": {
+    "icons": [
+     {
+      "id": "A",
+      "type": "Person"
+     }
+    ]
+   },
+   "validators": [
+    {
+     "entity_type": "Person",
+     "attribute": "id",
+     "pattern": "^\\d+$",
+     "description": "digits"
+    }
+   ]
+  },
+  "types": [
+   "validator_reserved_attribute"
+  ]
+ },
+ {
+  "name": "validator_unknown_type",
+  "spec": {
+   "entities": {
+    "icons": [
+     {
+      "id": "A",
+      "type": "Person"
+     }
+    ]
+   },
+   "validators": [
+    {
+     "entity_type": "Ghost",
+     "attribute": "CPF",
+     "pattern": "^\\d{11}$",
+     "description": "digits"
+    }
+   ]
+  },
+  "types": [
+   "validator_unknown_type"
+  ]
+ },
+ {
+  "name": "validator_duplicate_key",
+  "spec": {
+   "entity_types": [
+    {
+     "name": "Person",
+     "icon_file": "person"
+    }
+   ],
+   "entities": {
+    "icons": [
+     {
+      "id": "A",
+      "type": "Person"
+     }
+    ]
+   },
+   "validators": [
+    {
+     "entity_type": "Person",
+     "attribute": "CPF",
+     "pattern": "^\\d{11}$",
+     "description": "v1"
+    },
+    {
+     "entity_type": "Person",
+     "attribute": "CPF",
+     "allowed_values": [
+      "x",
+      "y"
+     ]
+    }
+   ]
+  },
+  "types": [
+   "validator_duplicate_key"
+  ]
+ },
+ {
+  "name": "pattern_missing_description",
+  "spec": {
+   "attribute_classes": [
+    {
+     "name": "CPF",
+     "type": "text",
+     "enforce": {
+      "pattern": "^\\d{11}$"
+     }
+    }
+   ],
+   "entities": {
+    "icons": [
+     {
+      "id": "A",
+      "type": "Person"
+     }
+    ]
+   }
+  },
+  "types": [
+   "pattern_missing_description"
+  ]
+ },
+ {
+  "name": "unregistered_datetime_format",
+  "spec": {
+   "entities": {
+    "icons": [
+     {
+      "id": "A",
+      "type": "Person",
+      "datetime_format": "Nope"
+     }
+    ]
+   }
+  },
+  "types": [
+   "unregistered_datetime_format"
+  ]
+ }
+]
