@@ -39,6 +39,7 @@ pub mod color;
 pub mod config_layering;
 pub mod custom_icons;
 pub mod datetime;
+pub mod discovery;
 pub mod entities;
 pub mod enums;
 pub mod error;
@@ -60,11 +61,12 @@ pub use builder::Builder;
 pub use sugar::EntityExt;
 
 pub use color::{ColorValue, NAMED_COLORS};
+pub use config_layering::{CascadeMode, ConfigStack};
 pub use entities::{
     Box, Circle, Entity, EntityCommon, EventFrame, Icon, Label, TextBlock, ThemeLine,
 };
 pub use enums::{
-    ArrowStyle, AttributeType, Color, ColorSpace, DotStyle, Enlargement, IntensityScale,
+    ArrowStyle, AttributeType, Color, ColorSpace, DotStyle, Enlargement, EnumMeta, IntensityScale,
     LegendItemType, MergeBehaviour, MissingPolicy, Multiplicity, Representation, ThemeWiring,
 };
 pub use error::{AnxValidationError, Error, ErrorType, Result, ValidationError};
