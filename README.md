@@ -1,5 +1,9 @@
 # anxwritter (Rust)
 
+[![crates.io](https://img.shields.io/crates/v/anxwritter.svg)](https://crates.io/crates/anxwritter)
+[![docs.rs](https://img.shields.io/docsrs/anxwritter)](https://docs.rs/anxwritter)
+[![license](https://img.shields.io/crates/l/anxwritter.svg)](LICENSE)
+
 A Rust port of the [`anxwritter`](https://github.com/gustavo-gkmi/anxwritter)
 Python library. It writes i2 Analyst's Notebook Exchange (`.anx`) chart files —
 UTF-16 XML documents that i2 Analyst's Notebook 9+ opens directly — from typed
