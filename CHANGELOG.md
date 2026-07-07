@@ -5,6 +5,47 @@ All notable changes to this crate are documented here. The format is based on
 specific upstream [`anxwritter`](https://github.com/gustavo-gkmi/anxwritter)
 (Python) release — see `TARGET_ANXWRITTER_VERSION`.
 
+## [1.24.1] - 2026-07-07
+
+Additive public-API changes so a downstream crate (an HTTP service wrapping this
+library) can drive layered config application, error provenance, and vocabulary
+discovery **without reaching into private items**. Output is unchanged — the
+byte-equivalence battery is untouched and still passes.
+
+### Added
+
+- **Per-call cascade mode override.** [`ConfigStack::apply_with(layer, mode,
+  source)`] applies a layer while optionally overriding its embedded
+  `cascade.mode`. The new [`CascadeMode`] enum (`Merge`/`Wipe`/`Delete`/`Lock`)
+  maps one-to-one to the Python `apply_config(operation=, wipe_previous=, lock=)`
+  kwargs. `mode = None` preserves the previous behaviour (honour the embedded
+  `cascade`, else default merge); `ConfigStack::apply(layer)` is now exactly
+  `apply_with(layer, None, None)`.
+- **Layer provenance on conflicts.** `apply_with`'s `source` argument tags any
+  `locked_override` / `delete_contract` [`ValidationError`] this layer produces:
+  the triggering layer's label on `source`, and — for `locked_override` — the
+  label of the layer that *established* the lock on `config_source`. (The
+  `ValidationError` fields `source` / `config_source` were already public.)
+- **Discovery module** ([`discovery`]) for generating a service `/meta`
+  endpoint from the crate itself: `discovery::enums()` (every public enum with
+  its serialized values), `discovery::named_colors()`, and
+  `discovery::arrange_algorithms()` / `discovery::arrange_aliases()`.
+- **Enum introspection.** The new [`EnumMeta`] trait exposes `VARIANTS`,
+  `as_str()`, and `values()` for the public config/style enums; a test pins the
+  strings to the serde serialization so they cannot drift from the wire format.
+- **Arrange tables.** `layout::ARRANGE_ALIASES` and `layout::ARRANGE_ALGORITHMS`
+  are now public consts (the single source of truth `normalize_arrange` reads).
+- Re-exports at the crate root: `CascadeMode`, `ConfigStack`, `EnumMeta`.
+
+### Notes
+
+- `layout::place_random` intentionally diverges from Python's MT19937 seeding;
+  its coordinates are valid, deterministic, and stable but not byte-equivalent.
+  Downstream parity batteries should exclude the `random` arrange mode (all other
+  geometric modes — grid/circle/radial/tree — match upstream exactly).
+
+[1.24.1]: https://github.com/gustavo-gkmi/anxwritter-rust/releases/tag/v1.24.1
+
 ## [1.24.0] - 2026-07-05
 
 Initial public release. Full Rust port of the `anxwritter` Python library,

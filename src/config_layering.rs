@@ -35,6 +35,37 @@ const KEYED_SECTIONS: &[&str] = &[
 /// List-only sections that append (no identity).
 const APPEND_SECTIONS: &[&str] = &["legend_items", "palettes", "validators"];
 
+/// The layering operation applied to a config layer.
+///
+/// Mirrors the Python `cascade.mode` vocabulary and the
+/// `apply_config(operation=, wipe_previous=, lock=)` kwargs table one-to-one —
+/// the server maps a request-level mode string to exactly these four cases:
+///
+/// | `CascadeMode` | Python `operation` / `wipe_previous` / `lock` |
+/// |---------------|-----------------------------------------------|
+/// | [`Merge`](CascadeMode::Merge)   | `merge`  / `false` / `false` |
+/// | [`Wipe`](CascadeMode::Wipe)     | `merge`  / `true`  / `false` |
+/// | [`Delete`](CascadeMode::Delete) | `delete` / `false` / `false` |
+/// | [`Lock`](CascadeMode::Lock)     | `merge`  / `false` / `true`  |
+///
+/// Pass one to [`ConfigStack::apply_with`] to override a layer's own embedded
+/// `cascade.mode` for that call (the equivalent of the Python kwargs). Passing
+/// `None` there honours the layer's embedded `cascade`, defaulting to `Merge`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CascadeMode {
+    /// Deep-merge settings; upsert keyed sections by `name`; append list-only
+    /// sections. The default when no cascade is set.
+    Merge,
+    /// Merge, but clear each mentioned section first ("narrow the list").
+    Wipe,
+    /// Remove the named entries, or clear whole list-only sections.
+    Delete,
+    /// Merge, then freeze the leaves this layer declared — a later layer trying
+    /// to change a locked leaf records a `locked_override` conflict and the
+    /// locked value is kept.
+    Lock,
+}
+
 #[derive(Clone, Copy, PartialEq)]
 enum Op {
     Merge,
@@ -43,13 +74,28 @@ enum Op {
     Lock,
 }
 
+impl From<CascadeMode> for Op {
+    fn from(m: CascadeMode) -> Self {
+        match m {
+            CascadeMode::Merge => Op::Merge,
+            CascadeMode::Wipe => Op::Wipe,
+            CascadeMode::Delete => Op::Delete,
+            CascadeMode::Lock => Op::Lock,
+        }
+    }
+}
+
+/// A locked leaf's value plus the `source` label of the layer that locked it.
+type LockedLeaf = (Value, Option<String>);
+
 /// Accumulates config layers into a single merged [`Config`].
 #[derive(Default)]
 pub struct ConfigStack {
     merged: Map<String, Value>,
-    /// Locked leaves: `(section, name, dotted_leaf)` -> locked value. A later
-    /// layer writing a different value to a locked leaf is rejected.
-    locked_leaves: HashMap<(String, String, String), Value>,
+    /// Locked leaves: `(section, name, dotted_leaf)` -> `(locked value, source)`.
+    /// A later layer writing a different value to a locked leaf is rejected; the
+    /// recorded `source` tags the resulting conflict's `config_source`.
+    locked_leaves: HashMap<(String, String, String), LockedLeaf>,
     conflicts: Vec<ValidationError>,
 }
 
@@ -58,18 +104,45 @@ impl ConfigStack {
         Self::default()
     }
 
-    /// Apply a single config layer (a parsed JSON/YAML object).
-    pub fn apply(&mut self, mut layer: Value) {
-        let op = extract_cascade(&mut layer);
+    /// Apply a single config layer (a parsed JSON/YAML object), honouring its
+    /// embedded `cascade.mode` (defaulting to merge). Equivalent to
+    /// [`apply_with`](Self::apply_with)`(layer, None, None)`.
+    pub fn apply(&mut self, layer: Value) {
+        self.apply_with(layer, None, None);
+    }
+
+    /// Apply a single config layer, optionally overriding its embedded
+    /// `cascade.mode` and tagging its provenance.
+    ///
+    /// - `mode`: when `Some`, overrides the layer's own `cascade.mode` for this
+    ///   call (mirrors the Python `apply_config` `operation`/`wipe_previous`/
+    ///   `lock` kwargs — see [`CascadeMode`]). When `None`, the layer's embedded
+    ///   `cascade` drives the operation, defaulting to [`CascadeMode::Merge`].
+    /// - `source`: a provenance label (e.g. a standard/file name) for this
+    ///   layer. It is carried onto any [`ValidationError`] this layer produces
+    ///   (`locked_override`, `delete_contract`) as the error's `source`, and is
+    ///   recorded on the leaves a `Lock` layer freezes so a later override
+    ///   conflict can name the locking layer via `config_source`.
+    ///
+    /// The embedded `cascade` block is always stripped from the layer, whether
+    /// or not `mode` overrides it.
+    pub fn apply_with(
+        &mut self,
+        mut layer: Value,
+        mode: Option<CascadeMode>,
+        source: Option<&str>,
+    ) {
+        let embedded = extract_cascade(&mut layer);
+        let op = mode.map(Op::from).unwrap_or(embedded);
         let Value::Object(obj) = layer else {
             return;
         };
         for (key, val) in obj {
-            self.apply_section(&key, val, op);
+            self.apply_section(&key, val, op, source);
         }
     }
 
-    fn apply_section(&mut self, key: &str, val: Value, op: Op) {
+    fn apply_section(&mut self, key: &str, val: Value, op: Op, source: Option<&str>) {
         if key == "settings" {
             let base = self
                 .merged
@@ -77,7 +150,7 @@ impl ConfigStack {
                 .or_insert(Value::Object(Map::new()));
             deep_merge(base, val);
         } else if KEYED_SECTIONS.contains(&key) {
-            self.apply_keyed(key, val, op);
+            self.apply_keyed(key, val, op, source);
         } else if APPEND_SECTIONS.contains(&key) || key == "source_types" {
             self.apply_list(key, val, op);
         } else {
@@ -98,7 +171,7 @@ impl ConfigStack {
         }
     }
 
-    fn apply_keyed(&mut self, section: &str, val: Value, op: Op) {
+    fn apply_keyed(&mut self, section: &str, val: Value, op: Op, source: Option<&str>) {
         let Value::Array(incoming) = val else { return };
         if op == Op::Wipe {
             self.merged
@@ -121,7 +194,7 @@ impl ConfigStack {
         // Collect operations first to avoid borrowing self.merged + self.locked
         // simultaneously.
         let mut conflicts = Vec::new();
-        let mut new_locks: Vec<((String, String, String), Value)> = Vec::new();
+        let mut new_locks: Vec<((String, String, String), LockedLeaf)> = Vec::new();
         for entry in incoming {
             let name = entry
                 .get("name")
@@ -136,7 +209,7 @@ impl ConfigStack {
                 .position(|e| e.get("name").and_then(|v| v.as_str()) == Some(&name));
             match op {
                 Op::Delete => {
-                    delete_keyed_entry(arr, pos, &entry, section, &name, &mut conflicts);
+                    delete_keyed_entry(arr, pos, &entry, section, &name, source, &mut conflicts);
                 }
                 _ => {
                     if pos.is_none() {
@@ -149,19 +222,22 @@ impl ConfigStack {
                             continue;
                         }
                         let lk = (section.to_string(), name.clone(), leaf.clone());
-                        if let Some(locked) = self.locked_leaves.get(&lk) {
+                        if let Some((locked, lock_src)) = self.locked_leaves.get(&lk) {
                             if locked != &lval {
-                                conflicts.push(ValidationError::new(
+                                let mut err = ValidationError::new(
                                     ErrorType::LockedOverride,
                                     format!("{section}.{name}.{leaf}"),
                                     format!("attempt to change locked '{leaf}' on '{name}'"),
-                                ));
+                                );
+                                err.source = source.map(str::to_string);
+                                err.config_source = lock_src.clone();
+                                conflicts.push(err);
                                 continue;
                             }
                         }
                         set_leaf(&mut arr[p], &leaf, lval.clone());
                         if op == Op::Lock {
-                            new_locks.push((lk, lval));
+                            new_locks.push((lk, (lval, source.map(str::to_string))));
                         }
                     }
                 }
@@ -279,6 +355,7 @@ fn delete_keyed_entry(
     entry: &Value,
     section: &str,
     name: &str,
+    source: Option<&str>,
     conflicts: &mut Vec<ValidationError>,
 ) {
     let named: Vec<(String, Value)> = entry
@@ -297,11 +374,13 @@ fn delete_keyed_entry(
     }
     for (k, v) in named {
         if !v.is_null() {
-            conflicts.push(ValidationError::new(
+            let mut err = ValidationError::new(
                 ErrorType::DeleteContract,
                 format!("{section}.{name}.{k}"),
                 "delete entries must set non-identity fields to null",
-            ));
+            );
+            err.source = source.map(str::to_string);
+            conflicts.push(err);
             continue;
         }
         if let Value::Object(m) = &mut arr[p] {
@@ -432,5 +511,148 @@ mod tests {
         assert!(conflicts
             .iter()
             .any(|e| e.error_type == ErrorType::DeleteContract));
+    }
+
+    // ── per-call mode override (gap 1) ──────────────────────────────────────
+
+    #[test]
+    fn mode_override_beats_embedded_cascade() {
+        // The layer carries no cascade (would merge), but the caller overrides
+        // with Delete — the Car entry must be removed.
+        let mut stack = ConfigStack::new();
+        stack.apply(json!({"entity_types": [{"name": "Person"}, {"name": "Car"}]}));
+        stack.apply_with(
+            json!({"entity_types": [{"name": "Car"}]}),
+            Some(CascadeMode::Delete),
+            None,
+        );
+        let (cfg, _) = stack.finish();
+        let names: Vec<&str> = cfg.entity_types.iter().map(|e| e.name.as_str()).collect();
+        assert_eq!(names, vec!["Person"]);
+    }
+
+    #[test]
+    fn mode_override_none_honours_embedded_cascade() {
+        // mode = None must preserve the layer's own cascade (here: wipe).
+        let mut stack = ConfigStack::new();
+        stack.apply(json!({"source_types": ["A", "B"]}));
+        stack.apply_with(
+            json!({"cascade": {"mode": "wipe"}, "source_types": ["C"]}),
+            None,
+            None,
+        );
+        let (cfg, _) = stack.finish();
+        assert_eq!(cfg.source_types, vec!["C".to_string()]);
+    }
+
+    #[test]
+    fn mode_override_can_downgrade_embedded_lock_to_merge() {
+        // Layer says lock, but the caller overrides to plain merge, so a later
+        // layer freely changes the value with no conflict.
+        let mut stack = ConfigStack::new();
+        stack.apply_with(
+            json!({"cascade": {"mode": "lock"}, "link_types": [{"name": "Calls", "color": 1}]}),
+            Some(CascadeMode::Merge),
+            None,
+        );
+        stack.apply(json!({"link_types": [{"name": "Calls", "color": 999}]}));
+        let (cfg, conflicts) = stack.finish();
+        assert_eq!(
+            cfg.link_types[0]
+                .color
+                .as_ref()
+                .unwrap()
+                .to_colorref()
+                .unwrap(),
+            999
+        );
+        assert!(conflicts.is_empty());
+    }
+
+    #[test]
+    fn cascade_modes_match_python_kwargs_table() {
+        // Wipe clears then merges; Delete removes; Lock freezes + conflicts.
+        let wipe = {
+            let mut s = ConfigStack::new();
+            s.apply(json!({"source_types": ["A", "B"]}));
+            s.apply_with(
+                json!({"source_types": ["C"]}),
+                Some(CascadeMode::Wipe),
+                None,
+            );
+            s.finish().0.source_types
+        };
+        assert_eq!(wipe, vec!["C".to_string()]);
+
+        let (lock_cfg, lock_conflicts) = {
+            let mut s = ConfigStack::new();
+            s.apply_with(
+                json!({"entity_types": [{"name": "P", "color": 1}]}),
+                Some(CascadeMode::Lock),
+                None,
+            );
+            s.apply_with(
+                json!({"entity_types": [{"name": "P", "color": 2}]}),
+                Some(CascadeMode::Merge),
+                None,
+            );
+            s.finish()
+        };
+        assert_eq!(
+            lock_cfg.entity_types[0]
+                .color
+                .as_ref()
+                .unwrap()
+                .to_colorref()
+                .unwrap(),
+            1
+        );
+        assert!(lock_conflicts
+            .iter()
+            .any(|e| e.error_type == ErrorType::LockedOverride));
+    }
+
+    // ── source provenance on conflicts (gap 2) ──────────────────────────────
+
+    #[test]
+    fn locked_override_conflict_carries_both_sources() {
+        // The locking layer's source ("org-base/090@lock") must surface as
+        // `config_source`; the overriding layer's source as `source`.
+        let mut stack = ConfigStack::new();
+        stack.apply_with(
+            json!({"link_types": [{"name": "Calls", "color": 1}]}),
+            Some(CascadeMode::Lock),
+            Some("org-base/090@lock"),
+        );
+        stack.apply_with(
+            json!({"link_types": [{"name": "Calls", "color": 999}]}),
+            None,
+            Some("tenant-override"),
+        );
+        let (_cfg, conflicts) = stack.finish();
+        let c = conflicts
+            .iter()
+            .find(|e| e.error_type == ErrorType::LockedOverride)
+            .expect("locked_override conflict");
+        assert_eq!(c.config_source.as_deref(), Some("org-base/090@lock"));
+        assert_eq!(c.source.as_deref(), Some("tenant-override"));
+        assert_eq!(c.location, "link_types.Calls.color");
+    }
+
+    #[test]
+    fn delete_contract_conflict_carries_source() {
+        let mut stack = ConfigStack::new();
+        stack.apply(json!({"entity_types": [{"name": "Person", "color": 128}]}));
+        stack.apply_with(
+            json!({"entity_types": [{"name": "Person", "color": 5}]}),
+            Some(CascadeMode::Delete),
+            Some("bad-delete-layer"),
+        );
+        let (_cfg, conflicts) = stack.finish();
+        let c = conflicts
+            .iter()
+            .find(|e| e.error_type == ErrorType::DeleteContract)
+            .expect("delete_contract conflict");
+        assert_eq!(c.source.as_deref(), Some("bad-delete-layer"));
     }
 }

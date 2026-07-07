@@ -20,22 +20,55 @@ fn fdiv(a: i64, b: i64) -> i64 {
     a.div_euclid(b)
 }
 
+/// Arrange-mode **alias table**: `(alias, canonical)`, mirroring the `_ALIASES`
+/// dict in `anxwritter/layouts/__init__.py`. Aliases are already canonicalized
+/// keys (lowercase, `-`/space collapsed to `_`); [`normalize_arrange`]
+/// canonicalizes its input the same way before looking it up here.
+///
+/// This is the single source of truth for both [`normalize_arrange`] and the
+/// discovery/`meta` payload — see [`crate::discovery`].
+pub const ARRANGE_ALIASES: &[(&str, &str)] = &[
+    // Force-directed (Fruchterman-Reingold)
+    ("fr", "fr"),
+    ("fruchterman_reingold", "fr"),
+    // ForceAtlas2
+    ("forceatlas2", "forceatlas2"),
+    ("force_atlas_2", "forceatlas2"),
+    ("force_atlas2", "forceatlas2"),
+    ("fa2", "forceatlas2"),
+    // Tidy tree (Reingold-Tilford family)
+    ("tree", "tree"),
+    ("reingold_tilford", "tree"),
+    ("tidy_tree", "tree"),
+    // Geometric modes (passthrough)
+    ("radial", "radial"),
+    ("circle", "circle"),
+    ("grid", "grid"),
+    ("random", "random"),
+];
+
+/// The canonical arrange algorithm keys (the deduped values of
+/// [`ARRANGE_ALIASES`]), in table order.
+pub const ARRANGE_ALGORITHMS: &[&str] = &[
+    "fr",
+    "forceatlas2",
+    "tree",
+    "radial",
+    "circle",
+    "grid",
+    "random",
+];
+
 /// Canonicalize an arrange string (lowercase, spaces/dashes -> underscores)
-/// then resolve aliases. Unknown values pass through unchanged (so [`place`]
-/// falls them through to `random`, matching upstream).
+/// then resolve aliases via [`ARRANGE_ALIASES`]. Unknown values pass through
+/// unchanged (so [`place`] falls them through to `random`, matching upstream).
 pub fn normalize_arrange(mode: &str) -> String {
     let canon = mode.trim().to_lowercase().replace(['-', ' '], "_");
-    let resolved = match canon.as_str() {
-        "fr" | "fruchterman_reingold" => "fr",
-        "forceatlas2" | "force_atlas_2" | "force_atlas2" | "fa2" => "forceatlas2",
-        "tree" | "reingold_tilford" | "tidy_tree" => "tree",
-        "radial" => "radial",
-        "circle" => "circle",
-        "grid" => "grid",
-        "random" => "random",
-        _ => return mode.to_string(),
-    };
-    resolved.to_string()
+    ARRANGE_ALIASES
+        .iter()
+        .find(|(alias, _)| *alias == canon)
+        .map(|(_, canonical)| canonical.to_string())
+        .unwrap_or_else(|| mode.to_string())
 }
 
 /// Grid placement: `ceil(sqrt(n))` columns, 200·scale spacing.
@@ -75,9 +108,16 @@ pub fn place_circle(auto_keys: &[String], cx: i64, cy: i64, scale: f64) -> Posit
     out
 }
 
-/// Deterministic "random" spread. NOTE: does not reproduce Python's
-/// Mersenne-Twister `random.Random(42)` sequence — positions differ from
-/// upstream but are valid and stable (the conformance bar is validity).
+/// Deterministic "random" spread.
+///
+/// **Intentional divergence from upstream:** Python seeds `random.Random(42)`
+/// (a Mersenne-Twister MT19937 generator); this uses a small local LCG instead.
+/// Coordinates are therefore *not* byte-equivalent to the Python reference for
+/// the `random` arrange mode. This is deliberate — reproducing MT19937 is not
+/// worth the weight, and `random` layouts have no fixed geometry to match. The
+/// output is valid, deterministic, and stable across runs. Downstream
+/// byte-parity batteries should exclude the `random` mode (all other geometric
+/// modes — grid/circle/radial/tree — match upstream exactly).
 pub fn place_random(auto_keys: &[String], cx: i64, cy: i64, scale: f64) -> Positions {
     let mut out = Positions::new();
     let extent = (400.0 * scale).round() as i64;
@@ -660,8 +700,9 @@ pub fn apply_tree(
 
 /// Compute NEW positions for `auto_keys` under `mode`.
 ///
-/// Geometric modes position only `auto_keys`; `fr`/`forceatlas2`/`tree` are not
-/// yet implemented and currently fall back to `circle`. Unknown modes fall
+/// `mode` is resolved through [`normalize_arrange`] first. Geometric modes
+/// (`grid`/`circle`/`radial`/`random`) position only `auto_keys`; the topology
+/// modes (`fr`/`forceatlas2`/`tree`) run over `all_keys`. Unknown modes fall
 /// through to `random`.
 #[allow(clippy::too_many_arguments)]
 pub fn place(
