@@ -12,6 +12,12 @@ Rust data, JSON, or YAML.
 Output is **content-identical** to the Python reference (validated against it
 across an error-parity battery, a feature corpus, and the full example chart).
 
+The one carve-out is the **force-directed and random layout modes** (`fr`,
+`forceatlas2`, `random`): their coordinates are faithful, deterministic, and
+valid, but *not* bit-identical to Python — a scalar implementation can't
+reproduce numpy/BLAS summation order or CPython's Mersenne-Twister sequence. The
+geometric layouts (`grid`/`circle`/`radial`/`tree`) match exactly.
+
 ## Why this exists
 
 This port exists to run `.anx` generation as a **centralized HTTP service**: a

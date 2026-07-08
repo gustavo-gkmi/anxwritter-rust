@@ -91,6 +91,53 @@ impl<W: std::io::Write> XmlSink for Utf16Sink<W> {
     }
 }
 
+/// A streaming sink that writes fragments as UTF-8 bytes to an inner writer in
+/// bounded chunks — peak memory stays at the buffer size regardless of document
+/// length. This is the string/XML analogue of [`Utf16Sink`] (Python's
+/// `iter_xml`): the declaration says `utf-8` and no transcoding happens, so it is
+/// the low-memory path for serving an XML body. IO errors are captured and
+/// surfaced by [`Utf8Sink::finish`].
+pub struct Utf8Sink<W: std::io::Write> {
+    inner: W,
+    buf: Vec<u8>,
+    err: Option<std::io::Error>,
+}
+
+impl<W: std::io::Write> Utf8Sink<W> {
+    /// Create a sink over `inner`.
+    pub fn new(inner: W) -> Self {
+        Self {
+            inner,
+            buf: Vec::with_capacity(STREAM_FLUSH_BYTES + 1024),
+            err: None,
+        }
+    }
+
+    /// Flush the remaining buffer and return any captured IO error.
+    pub fn finish(mut self) -> std::io::Result<()> {
+        if let Some(e) = self.err {
+            return Err(e);
+        }
+        self.inner.write_all(&self.buf)?;
+        self.inner.flush()
+    }
+}
+
+impl<W: std::io::Write> XmlSink for Utf8Sink<W> {
+    fn write_str(&mut self, s: &str) {
+        if self.err.is_some() {
+            return;
+        }
+        self.buf.extend_from_slice(s.as_bytes());
+        if self.buf.len() >= STREAM_FLUSH_BYTES {
+            if let Err(e) = self.inner.write_all(&self.buf) {
+                self.err = Some(e);
+            }
+            self.buf.clear();
+        }
+    }
+}
+
 /// A minimal XML writer that emits to any [`XmlSink`].
 ///
 /// In `compact` mode (the `.anx` file default) output is newline-separated with
@@ -121,10 +168,17 @@ impl<'s> Writer<'s> {
         }
     }
 
-    /// `<?xml version='1.0' encoding='utf-16'?>`
-    pub fn declaration(&mut self) {
-        self.out
-            .write_str("<?xml version='1.0' encoding='utf-16'?>\n");
+    /// `<?xml version='1.0' encoding='{encoding}'?>`.
+    ///
+    /// The declaration must name the encoding of the bytes the caller actually
+    /// hands back: `utf-8` for the string forms (which return a Rust `String`,
+    /// UTF-8 in memory) and `utf-16` for the `.anx` byte writer (UTF-16 LE + BOM).
+    /// This mirrors upstream 1.25.0, which threads the same distinction through
+    /// its serializers.
+    pub fn declaration(&mut self, encoding: &str) {
+        self.out.write_str("<?xml version='1.0' encoding='");
+        self.out.write_str(encoding);
+        self.out.write_str("'?>\n");
     }
 
     /// A provenance comment (excluded from conformance digests upstream).

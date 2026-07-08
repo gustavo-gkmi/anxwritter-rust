@@ -5,6 +5,54 @@ All notable changes to this crate are documented here. The format is based on
 specific upstream [`anxwritter`](https://github.com/gustavo-gkmi/anxwritter)
 (Python) release — see `TARGET_ANXWRITTER_VERSION`.
 
+## [1.25.0] - 2026-07-08
+
+Syncs upstream `anxwritter` 1.25.0 — the XML declaration now names the encoding
+of the bytes each output form actually hands back — plus additive API affordances
+for a downstream HTTP service.
+
+### Changed
+
+- **String XML forms now declare `encoding='utf-8'`** (was `utf-16`), matching
+  upstream 1.25.0. `render_xml`, `to_xml`, `Builder::build`/`build_with`, and the
+  new streaming `Builder::write_xml_to` all return a UTF-8 `String`/byte stream
+  whose declaration now says so. The **`.anx` byte forms are unchanged**:
+  `build_anx`, `write_anx`, and `iter_anx_bytes` still emit `encoding='utf-16'`
+  and UTF-16 LE + BOM. The declaration is threaded per output form via a new
+  `Builder::build_with_encoding(data, compact, xml_encoding)`; it is declaration
+  text only and never transcodes. A server returning `to_xml` output as a UTF-8
+  body can drop any `utf-16`→`utf-8` declaration fix-up. Breaking for anyone who
+  string-matched `encoding='utf-16'` on a string-form result.
+- `TARGET_ANXWRITTER_VERSION` is now `"1.25.0"`; the `.anx` provenance comment
+  tracks it.
+
+### Added
+
+- **`VERSION`** crate constant (`env!("CARGO_PKG_VERSION")`) — the crate's own
+  version, for a service's `/meta` "engine version". Distinct from
+  `TARGET_ANXWRITTER_VERSION` (the upstream Python release the output tracks).
+- **`Config::from_value` / `ChartData::from_value`** — construct from an
+  already-parsed `serde_json::Value`, skipping a serialize-then-reparse round-trip
+  on a request hot path.
+- **`Builder::write_xml_to(data, w, compact)`** — stream the XML as UTF-8 text to
+  a sink with bounded memory (the string counterpart to `write_to`/Python's
+  `iter_xml`), so an `?format=xml` response need not materialize the document.
+- **`BuildOptions { compact, validate }`** with **`build_anx_with`** /
+  **`write_anx_with`** — name each flag at the call site, resolving the
+  `validate`-vs-`compact` trailing-`bool` ambiguity between the free functions and
+  the `Builder` methods.
+- **`ErrorType::as_str()`** (and `Display`) — the stable snake_case wire string
+  without a serde round-trip.
+- **`discovery::named_colors_display()`** / **`NAMED_COLORS_DISPLAY`** — the 40
+  named colors keyed by Python's original display casing (`"Light Orange"`), for
+  `/meta` key-parity, alongside the existing normalized `named_colors()`.
+
+### Notes
+
+- README now states explicitly that the `fr`/`forceatlas2`/`random` layout modes
+  are deterministic and valid but not bit-identical to Python (geometric layouts
+  still match exactly) — the byte-equivalence claim no longer overstates.
+
 ## [1.24.1] - 2026-07-07
 
 Additive public-API changes so a downstream crate (an HTTP service wrapping this

@@ -75,10 +75,20 @@ pub fn enums() -> Vec<EnumInfo> {
     ]
 }
 
-/// The named-color table: `(normalized_name, COLORREF)`, mirroring the Python
-/// `NAMED_COLORS` map. Names are pre-normalized (lowercase, `-`/space -> `_`).
+/// The named-color table: `(normalized_name, COLORREF)`. Names are
+/// pre-normalized (lowercase, `-`/space -> `_`), matching the crate's `Color`
+/// enum values. For the original ANB display casing Python's `NAMED_COLORS` dict
+/// exposes (`"Light Orange"`), use [`named_colors_display`].
 pub fn named_colors() -> &'static [(&'static str, u32)] {
     NAMED_COLORS
+}
+
+/// The named-color table keyed by Python's original display casing:
+/// `(display_name, COLORREF)` — e.g. `("Light Orange", …)`, `("Blue-Grey", …)`.
+/// Parallel to [`named_colors`] (same order/colorrefs). Emit these when a `/meta`
+/// endpoint wants key-parity with the Python `NAMED_COLORS` dict.
+pub fn named_colors_display() -> &'static [(&'static str, u32)] {
+    crate::color::NAMED_COLORS_DISPLAY
 }
 
 /// The canonical arrange algorithm keys (`fr`, `forceatlas2`, `tree`, `radial`,
@@ -146,5 +156,14 @@ mod tests {
         assert_eq!(map.len(), 40);
         assert!(map.contains(&("white", 0x00FF_FFFF)));
         assert!(map.contains(&("black", 0)));
+    }
+
+    #[test]
+    fn named_colors_display_preserves_python_casing() {
+        let map = named_colors_display();
+        assert_eq!(map.len(), 40);
+        assert!(map.contains(&("Light Orange", 0x0000_99FF)));
+        assert!(map.contains(&("Blue-Grey", 0x0099_6666)));
+        assert!(map.contains(&("White", 0x00FF_FFFF)));
     }
 }

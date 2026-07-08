@@ -63,6 +63,54 @@ pub static NAMED_COLORS: &[(&str, u32)] = &[
     ("white", rgb_to_colorref(255, 255, 255)),
 ];
 
+/// The same 40 named colors as [`NAMED_COLORS`], but keyed by their original
+/// ANB display casing (`"Light Orange"`, `"Blue-Grey"`, …) — the exact strings
+/// Python's `NAMED_COLORS` dict exposes. Parallel to [`NAMED_COLORS`] (same order
+/// and colorrefs), for a `/meta` endpoint that wants wire-parity on the display
+/// keys. Both casings resolve via [`named_to_colorref`], which normalizes.
+pub static NAMED_COLORS_DISPLAY: &[(&str, u32)] = &[
+    ("Black", rgb_to_colorref(0, 0, 0)),
+    ("Brown", rgb_to_colorref(153, 51, 0)),
+    ("Olive Green", rgb_to_colorref(51, 51, 0)),
+    ("Dark Green", rgb_to_colorref(0, 51, 0)),
+    ("Dark Teal", rgb_to_colorref(0, 51, 102)),
+    ("Dark Blue", rgb_to_colorref(0, 0, 128)),
+    ("Indigo", rgb_to_colorref(51, 51, 153)),
+    ("Dark Grey", rgb_to_colorref(51, 51, 51)),
+    ("Dark Red", rgb_to_colorref(128, 0, 0)),
+    ("Orange", rgb_to_colorref(255, 102, 0)),
+    ("Dark Yellow", rgb_to_colorref(128, 128, 0)),
+    ("Green", rgb_to_colorref(0, 128, 0)),
+    ("Teal", rgb_to_colorref(0, 128, 128)),
+    ("Blue", rgb_to_colorref(0, 0, 255)),
+    ("Blue-Grey", rgb_to_colorref(102, 102, 153)),
+    ("Grey", rgb_to_colorref(128, 128, 128)),
+    ("Red", rgb_to_colorref(255, 0, 0)),
+    ("Light Orange", rgb_to_colorref(255, 153, 0)),
+    ("Lime", rgb_to_colorref(153, 204, 0)),
+    ("Sea Green", rgb_to_colorref(51, 153, 102)),
+    ("Aqua", rgb_to_colorref(51, 204, 204)),
+    ("Light Blue", rgb_to_colorref(51, 102, 255)),
+    ("Violet", rgb_to_colorref(128, 0, 128)),
+    ("Light Grey", rgb_to_colorref(153, 153, 153)),
+    ("Pink", rgb_to_colorref(255, 0, 255)),
+    ("Gold", rgb_to_colorref(255, 204, 0)),
+    ("Yellow", rgb_to_colorref(255, 255, 0)),
+    ("Bright Green", rgb_to_colorref(0, 255, 0)),
+    ("Turquoise", rgb_to_colorref(0, 255, 255)),
+    ("Sky Blue", rgb_to_colorref(0, 204, 255)),
+    ("Plum", rgb_to_colorref(153, 51, 102)),
+    ("Silver", rgb_to_colorref(192, 192, 192)),
+    ("Rose", rgb_to_colorref(255, 153, 204)),
+    ("Tan", rgb_to_colorref(255, 204, 153)),
+    ("Light Yellow", rgb_to_colorref(255, 255, 153)),
+    ("Light Green", rgb_to_colorref(204, 255, 204)),
+    ("Light Turquoise", rgb_to_colorref(204, 255, 255)),
+    ("Pale Blue", rgb_to_colorref(153, 204, 255)),
+    ("Lavender", rgb_to_colorref(204, 153, 255)),
+    ("White", rgb_to_colorref(255, 255, 255)),
+];
+
 /// Canonical key for case/punctuation-insensitive name lookups.
 fn normalize_name(name: &str) -> String {
     name.trim().to_lowercase().replace(['-', ' '], "_")
@@ -365,6 +413,18 @@ mod tests {
     fn white_and_black_constants() {
         assert_eq!(named_to_colorref("white"), Some(16777215));
         assert_eq!(named_to_colorref("black"), Some(0));
+    }
+
+    #[test]
+    fn display_table_parallels_snake_table() {
+        assert_eq!(NAMED_COLORS_DISPLAY.len(), NAMED_COLORS.len());
+        for ((disp, dc), (snake, sc)) in NAMED_COLORS_DISPLAY.iter().zip(NAMED_COLORS) {
+            // Same colorref, same slot.
+            assert_eq!(dc, sc, "colorref mismatch for {disp}/{snake}");
+            // The display name normalizes to the snake key, and both resolve.
+            assert_eq!(&normalize_name(disp), snake);
+            assert_eq!(named_to_colorref(disp), Some(*dc));
+        }
     }
 
     #[test]
