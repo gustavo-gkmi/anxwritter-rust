@@ -426,26 +426,49 @@ impl Builder {
         b
     }
 
-    /// Resolve and emit compact `.anx` XML for `data` (the file form).
+    /// Resolve and emit the compact XML string for `data`.
+    ///
+    /// The returned Rust `String` is UTF-8, and its declaration says so
+    /// (`encoding='utf-8'`, matching upstream 1.25.0's `to_xml`). For the
+    /// UTF-16-declared form that goes into an on-disk `.anx`, use the byte APIs
+    /// ([`crate::api::build_anx`] / [`crate::api::write_anx`]) or
+    /// [`build_with_encoding`](Self::build_with_encoding).
     pub fn build(self, data: &ChartData) -> String {
         self.build_with(data, true)
     }
 
-    /// Resolve and emit `.anx` XML to an in-memory string, choosing compact
-    /// (file) or pretty (indented, matching Python's `to_xml(compact=False)`).
-    pub fn build_with(mut self, data: &ChartData, compact: bool) -> String {
+    /// Resolve and emit the XML string, choosing compact (newline-separated) or
+    /// pretty (indented, matching Python's `to_xml(compact=False)`). The
+    /// declaration says `encoding='utf-8'` — the string form.
+    pub fn build_with(self, data: &ChartData, compact: bool) -> String {
+        self.build_with_encoding(data, compact, "utf-8")
+    }
+
+    /// Resolve and emit the XML string with an explicit declaration `encoding`.
+    ///
+    /// This is the general string core: the public string APIs pass `"utf-8"`
+    /// (the string is UTF-8), while the `.anx` byte paths render with `"utf-16"`
+    /// before encoding to UTF-16 LE. The declaration is text only — this method
+    /// never transcodes; the returned `String` is always UTF-8.
+    pub fn build_with_encoding(
+        mut self,
+        data: &ChartData,
+        compact: bool,
+        xml_encoding: &str,
+    ) -> String {
         self.finalize(data);
         let mut s = String::new();
         {
             let mut w = Writer::new(&mut s, compact);
-            self.emit_into(&mut w, data);
+            self.emit_into(&mut w, data, xml_encoding);
         }
         s
     }
 
     /// Resolve, then **stream** the `.anx` (UTF-16 LE + BOM) directly to `w` with
     /// bounded peak memory — never materializing the full document. Mirrors
-    /// Python's `to_anx(stream=True)`. Ideal for an HTTP response body.
+    /// Python's `to_anx(stream=True)`. Ideal for an HTTP response body. The
+    /// declaration says `encoding='utf-16'` — the on-disk `.anx` form.
     pub fn write_to<W: std::io::Write>(
         mut self,
         data: &ChartData,
@@ -456,7 +479,27 @@ impl Builder {
         let mut sink = crate::xml::Utf16Sink::new(w)?;
         {
             let mut wr = Writer::new(&mut sink, compact);
-            self.emit_into(&mut wr, data);
+            self.emit_into(&mut wr, data, "utf-16");
+        }
+        sink.finish()
+    }
+
+    /// Resolve, then **stream** the XML as UTF-8 text directly to `w` with bounded
+    /// peak memory — the string analogue of [`write_to`](Self::write_to) and the
+    /// counterpart to Python's `iter_xml`. The declaration says `encoding='utf-8'`.
+    /// Use this to serve an `?format=xml` body without holding the whole document
+    /// in memory. Wrap `w` in a [`std::io::BufWriter`] for best I/O.
+    pub fn write_xml_to<W: std::io::Write>(
+        mut self,
+        data: &ChartData,
+        w: W,
+        compact: bool,
+    ) -> std::io::Result<()> {
+        self.finalize(data);
+        let mut sink = crate::xml::Utf8Sink::new(w);
+        {
+            let mut wr = Writer::new(&mut sink, compact);
+            self.emit_into(&mut wr, data, "utf-8");
         }
         sink.finish()
     }
@@ -1193,8 +1236,8 @@ impl Builder {
 
     // ── Emit pass ─────────────────────────────────────────────────────────────
 
-    fn emit_into(&self, w: &mut Writer, data: &ChartData) {
-        w.declaration();
+    fn emit_into(&self, w: &mut Writer, data: &ChartData, xml_encoding: &str) {
+        w.declaration(xml_encoding);
         w.comment(&format!("Built with anxwritter {VERSION} — {REPO_URL}"));
         w.open("Chart", &self.chart_attrs());
         w.empty(

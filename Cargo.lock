@@ -28,7 +28,7 @@ dependencies = [
 
 [[package]]
 name = "anxwritter"
-version = "1.24.1"
+version = "1.25.0"
 dependencies = [
  "base64",
  "chrono",

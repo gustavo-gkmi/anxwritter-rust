@@ -1,6 +1,6 @@
 [package]
 name = "anxwritter"
-version = "1.24.1"
+version = "1.25.0"
 edition = "2021"
 rust-version = "1.88"
 description = "Write i2 Analyst's Notebook Exchange (.anx) files from typed data, JSON, or YAML — Rust port of the anxwritter Python library"

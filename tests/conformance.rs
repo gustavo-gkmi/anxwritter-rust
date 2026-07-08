@@ -18,8 +18,8 @@ const MINIMAL_INPUT: &str = r#"{
 }"#;
 
 const MINIMAL_EXPECTED: &str = concat!(
-    "<?xml version='1.0' encoding='utf-16'?>\n",
-    "<!-- Built with anxwritter 1.24.2 — https://github.com/gustavo-gkmi/anxwritter -->\n",
+    "<?xml version='1.0' encoding='utf-8'?>\n",
+    "<!-- Built with anxwritter 1.25.0 — https://github.com/gustavo-gkmi/anxwritter -->\n",
     "<Chart>\n",
     "<ApplicationVersion Major=\"9\" Minor=\"0\" Point=\"0\" Build=\"0\"/>\n",
     "<StrengthCollection>\n",

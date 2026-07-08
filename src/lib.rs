@@ -31,7 +31,15 @@
 
 /// The upstream `anxwritter` (Python) release this crate targets. The emitted
 /// `.anx` provenance comment and output format track this version.
-pub const TARGET_ANXWRITTER_VERSION: &str = "1.24.2";
+///
+/// This is **not** the crate's own version — see [`VERSION`] for that. Reporting
+/// this where you mean the linked engine version is a common mistake.
+pub const TARGET_ANXWRITTER_VERSION: &str = "1.25.0";
+
+/// This crate's own version (`CARGO_PKG_VERSION`). Use this for a service's
+/// `/meta` "engine version"; use [`TARGET_ANXWRITTER_VERSION`] for the upstream
+/// Python release the output format tracks.
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub mod api;
 pub mod builder;
@@ -56,11 +64,11 @@ pub mod validation;
 pub mod value;
 pub mod xml;
 
-pub use api::{build_anx, render_xml, write_anx};
+pub use api::{build_anx, build_anx_with, render_xml, write_anx, write_anx_with, BuildOptions};
 pub use builder::Builder;
 pub use sugar::EntityExt;
 
-pub use color::{ColorValue, NAMED_COLORS};
+pub use color::{ColorValue, NAMED_COLORS, NAMED_COLORS_DISPLAY};
 pub use config_layering::{CascadeMode, ConfigStack};
 pub use entities::{
     Box, Circle, Entity, EntityCommon, EventFrame, Icon, Label, TextBlock, ThemeLine,
